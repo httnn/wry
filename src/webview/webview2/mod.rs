@@ -924,6 +924,9 @@ window.addEventListener('mousemove', (e) => window.chrome.webview.postMessage('_
   pub fn set_theme(&self, theme: Theme) {
     set_theme(&self.webview, theme);
   }
+  pub fn set_intercepted_keys(&mut self, _keys: Vec<&str> ){
+    todo!("Not implemented for windows yet");
+  }
 }
 
 fn encode_wide(string: impl AsRef<std::ffi::OsStr>) -> Vec<u16> {
@@ -1001,6 +1004,8 @@ fn set_theme(webview: &ICoreWebView2, theme: Theme) {
         Theme::Auto => COREWEBVIEW2_PREFERRED_COLOR_SCHEME_AUTO,
       });
   }
+
+
 }
 
 pub fn platform_webview_version() -> Result<String> {
