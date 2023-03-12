@@ -302,13 +302,8 @@ impl InnerWebView {
         .SetIsZoomControlEnabled(attributes.zoom_hotkeys_enabled)
         .map_err(webview2_com::Error::WindowsError)?;
       settings
-        .SetAreDevToolsEnabled(false)
+        .SetAreDevToolsEnabled(attributes.devtools)
         .map_err(webview2_com::Error::WindowsError)?;
-      if attributes.devtools {
-        settings
-          .SetAreDevToolsEnabled(true)
-          .map_err(webview2_com::Error::WindowsError)?;
-      }
       if !pl_attrs.browser_accelerator_keys {
         if let Ok(settings3) = settings.cast::<ICoreWebView2Settings3>() {
           settings3
@@ -318,7 +313,14 @@ impl InnerWebView {
       }
 
       let settings5 = settings.cast::<ICoreWebView2Settings5>()?;
-      let _ = settings5.SetIsPinchZoomEnabled(attributes.zoom_hotkeys_enabled);
+      settings5
+        .SetIsPinchZoomEnabled(attributes.zoom_hotkeys_enabled)
+        .map_err(webview2_com::Error::WindowsError)?;
+
+      let settings6 = settings.cast::<ICoreWebView2Settings6>()?;
+      settings6
+        .SetIsSwipeNavigationEnabled(attributes.back_forward_navigation_gestures)
+        .map_err(webview2_com::Error::WindowsError)?;
 
       let mut rect = RECT::default();
       win32wm::GetClientRect(hwnd, &mut rect);

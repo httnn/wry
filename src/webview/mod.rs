@@ -123,7 +123,7 @@ pub struct WebViewAttributes {
   /// Register custom file loading protocols with pairs of scheme uri string and a handling
   /// closure.
   ///
-  /// The closure takes a [Response] and returns a [Request].
+  /// The closure takes a [Request] and returns a [Response].
   ///
   /// # Warning
   /// Pages loaded from custom protocol will have different Origin on different platforms. And
@@ -226,10 +226,9 @@ pub struct WebViewAttributes {
 
   /// Indicates whether horizontal swipe gestures trigger backward and forward page navigation.
   ///
-  /// ## Platform-specific
+  /// ## Platform-specific:
   ///
-  /// This configuration only impacts macOS.
-  /// [Documentation](https://developer.apple.com/documentation/webkit/wkwebview/1414995-allowsbackforwardnavigationgestu).
+  /// - **Android / iOS:** Unsupported.
   pub back_forward_navigation_gestures: bool,
 
   /// Set a handler closure to process the change of the webview's document title.
@@ -348,10 +347,9 @@ impl<'a> WebViewBuilder<'a> {
 
   /// Indicates whether horizontal swipe gestures trigger backward and forward page navigation.
   ///
-  /// ## Platform-specific
+  /// ## Platform-specific:
   ///
-  /// This configuration only impacts macOS.
-  /// [Documentation](https://developer.apple.com/documentation/webkit/wkwebview/1414995-allowsbackforwardnavigationgestu).
+  /// - **Android / iOS:** Unsupported.
   pub fn with_back_forward_navigation_gestures(mut self, gesture: bool) -> Self {
     self.webview.back_forward_navigation_gestures = gesture;
     self
