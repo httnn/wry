@@ -896,6 +896,10 @@ impl WebView {
     self.webview.load_url_with_headers(url, headers)
   }
 
+  #[cfg(any(
+    target_os = "windows",
+    target_os = "macos",
+    ))]
   pub fn set_intercepted_keys(&mut self, keys: Vec<&str>) {
     self.webview.set_intercepted_keys(keys);
   }
