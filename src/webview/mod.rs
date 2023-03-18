@@ -35,6 +35,7 @@ pub(crate) mod webkitgtk;
   target_os = "openbsd"
 ))]
 use webkitgtk::*;
+pub use tao::window::Window;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub(crate) mod wkwebview;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
