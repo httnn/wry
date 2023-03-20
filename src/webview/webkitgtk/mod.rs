@@ -29,12 +29,11 @@ pub use web_context::WebContextImpl;
 pub mod child_window;
 
 use crate::{
-  application::{platform::unix::*/* , window::Window} */},
+  application::{platform::unix::*, window::Window},
   webview::{web_context::WebContext, WebViewAttributes, RGBA},
   Error, Result,
 };
 
-pub use tao::window::Window;
 
 mod file_drop;
 mod web_context;
