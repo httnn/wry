@@ -26,12 +26,14 @@ use webkit2gtk_sys::{
 
 use web_context::WebContextExt;
 pub use web_context::WebContextImpl;
+pub mod child_window;
 
 use crate::{
   application::{platform::unix::*, window::Window},
   webview::{web_context::WebContext, WebViewAttributes, RGBA},
   Error, Result,
 };
+
 
 mod file_drop;
 mod web_context;
@@ -266,10 +268,17 @@ impl InnerWebView {
     }
     webview.grab_focus();
 
+    if let Some(context) = WebViewExt::context(&*webview) {
+      use webkit2gtk::WebContextExt;
+      context.set_use_system_appearance_for_scrollbars(false);
+    }
+
     // Enable webgl, webaudio, canvas features as default.
     if let Some(settings) = WebViewExt::settings(&*webview) {
       settings.set_enable_webgl(true);
       settings.set_enable_webaudio(true);
+      settings
+        .set_enable_back_forward_navigation_gestures(attributes.back_forward_navigation_gestures);
 
       // Enable clipboard
       if attributes.clipboard {

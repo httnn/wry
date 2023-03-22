@@ -37,6 +37,10 @@ use windows::Win32::{
 
 use windows_implement::implement;
 
+// We still need to use the dpi::PhsicalPosition struct 
+use crate::application::{
+  dpi::PhysicalPosition
+};
 // use crate::application::{
 //   dpi::PhysicalPosition, platform::windows::WindowExtWindows, window::Window,
 // };
