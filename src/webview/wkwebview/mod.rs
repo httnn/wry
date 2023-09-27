@@ -14,8 +14,9 @@ use url::Url;
 #[cfg(target_os = "macos")]
 use cocoa::appkit::{NSView, NSViewHeightSizable, NSViewWidthSizable};
 use cocoa::{
+  appkit::NSWindow,
   base::{id, nil, NO, YES},
-  foundation::{NSDictionary, NSFastEnumeration, NSInteger}, appkit::{NSWindow},
+  foundation::{NSDictionary, NSFastEnumeration, NSInteger},
 };
 
 use std::{
@@ -25,10 +26,11 @@ use std::{
   ptr::{null, null_mut},
   rc::Rc,
   slice, str,
-  sync::{Arc, Mutex}, time::{SystemTime, UNIX_EPOCH},
+  sync::{Arc, Mutex},
+  time::{SystemTime, UNIX_EPOCH},
 };
 
-use core_graphics::{geometry::CGRect};
+use core_graphics::geometry::CGRect;
 use objc::{
   declare::ClassDecl,
   runtime::{Class, Object, Sel, BOOL},
@@ -36,13 +38,15 @@ use objc::{
 use objc_id::Id;
 
 pub struct Window {
-  pub ns_view: *mut c_void
+  pub ns_view: *mut c_void,
 }
 
 impl Window {
   pub fn new(handle: RawWindowHandle) -> Self {
     if let RawWindowHandle::AppKit(handle) = handle {
-      return Self { ns_view: handle.ns_view };
+      return Self {
+        ns_view: handle.ns_view,
+      };
     }
     panic!("Invalid window handle.");
   }
@@ -67,9 +71,7 @@ use file_drop::{add_file_drop_methods, set_file_drop_handler};
 use crate::application::platform::ios::WindowExtIOS;
 
 use crate::{
-  application::{
-    dpi::{LogicalSize, PhysicalSize}
-  },
+  application::dpi::{LogicalSize, PhysicalSize},
   webview::{
     wkwebview::download::{
       add_download_methods, download_did_fail, download_did_finish, download_policy,
@@ -107,7 +109,7 @@ pub(crate) struct InnerWebView {
   file_drop_ptr: *mut (Box<dyn Fn(&Window, FileDropEvent) -> bool>, Rc<Window>),
   download_delegate: id,
   protocol_ptrs: Vec<*mut Box<dyn Fn(&Request<Vec<u8>>) -> Result<Response<Cow<'static, [u8]>>>>>,
-  parent_view: id
+  parent_view: id,
 }
 
 impl InnerWebView {
@@ -117,7 +119,11 @@ impl InnerWebView {
     _pl_attrs: super::PlatformSpecificWebViewAttributes,
     _web_context: Option<&mut WebContext>,
   ) -> Result<Self> {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos().to_string();
+    let now = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .unwrap()
+      .as_nanos()
+      .to_string();
 
     // Function for ipc handler
     extern "C" fn did_receive(this: &Object, _: Sel, _: id, msg: id) {
@@ -431,7 +437,10 @@ impl InnerWebView {
       let document_title_changed_handler = if let Some(document_title_changed_handler) =
         attributes.document_title_changed_handler
       {
-        let cls = ClassDecl::new(&("DocumentTitleChangedDelegate".to_owned() + &now), class!(NSObject));
+        let cls = ClassDecl::new(
+          &("DocumentTitleChangedDelegate".to_owned() + &now),
+          class!(NSObject),
+        );
         let cls = match cls {
           Some(mut cls) => {
             cls.add_ivar::<*mut c_void>("function");
@@ -571,8 +580,10 @@ impl InnerWebView {
 
       let pending_scripts = Arc::new(Mutex::new(Some(Vec::new())));
 
-      let navigation_delegate_cls = match ClassDecl::new(&("WryNavigationDelegate".to_owned() + &now), class!(NSObject))
-      {
+      let navigation_delegate_cls = match ClassDecl::new(
+        &("WryNavigationDelegate".to_owned() + &now),
+        class!(NSObject),
+      ) {
         Some(mut cls) => {
           cls.add_ivar::<*mut c_void>("pending_scripts");
           cls.add_ivar::<*mut c_void>("navigation_policy_function");
@@ -642,26 +653,27 @@ impl InnerWebView {
         let download_delegate = if attributes.download_started_handler.is_some()
           || attributes.download_completed_handler.is_some()
         {
-          let cls = match ClassDecl::new(&("WryDownloadDelegate".to_owned() + &now), class!(NSObject)) {
-            Some(mut cls) => {
-              cls.add_ivar::<*mut c_void>("started");
-              cls.add_ivar::<*mut c_void>("completed");
-              cls.add_method(
+          let cls =
+            match ClassDecl::new(&("WryDownloadDelegate".to_owned() + &now), class!(NSObject)) {
+              Some(mut cls) => {
+                cls.add_ivar::<*mut c_void>("started");
+                cls.add_ivar::<*mut c_void>("completed");
+                cls.add_method(
                 sel!(download:decideDestinationUsingResponse:suggestedFilename:completionHandler:),
                 download_policy as extern "C" fn(&Object, Sel, id, id, id, id),
               );
-              cls.add_method(
-                sel!(downloadDidFinish:),
-                download_did_finish as extern "C" fn(&Object, Sel, id),
-              );
-              cls.add_method(
-                sel!(download:didFailWithError:resumeData:),
-                download_did_fail as extern "C" fn(&Object, Sel, id, id, id),
-              );
-              cls.register()
-            }
-            None => class!(WryDownloadDelegate),
-          };
+                cls.add_method(
+                  sel!(downloadDidFinish:),
+                  download_did_finish as extern "C" fn(&Object, Sel, id),
+                );
+                cls.add_method(
+                  sel!(download:didFailWithError:resumeData:),
+                  download_did_fail as extern "C" fn(&Object, Sel, id, id, id),
+                );
+                cls.register()
+              }
+              None => class!(WryDownloadDelegate),
+            };
 
           let download_delegate: id = msg_send![cls, new];
           if let Some(download_started_handler) = attributes.download_started_handler {
@@ -732,7 +744,10 @@ impl InnerWebView {
         }
       }
 
-      let ui_delegate = match ClassDecl::new(&("WebViewUIDelegate".to_owned() + &now), class!(NSObject)) {
+      let ui_delegate = match ClassDecl::new(
+        &("WebViewUIDelegate".to_owned() + &now),
+        class!(NSObject),
+      ) {
         Some(mut ctl) => {
           ctl.add_method(
             sel!(webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:),
@@ -780,7 +795,33 @@ impl InnerWebView {
         ns_window
       };
 
-      let mut w = Self {
+      let parent_view_cls =
+        match ClassDecl::new(&("WryWebViewParent".to_owned() + &now), class!(NSView)) {
+          Some(mut decl) => {
+            decl.add_method(
+              sel!(performKeyEquivalent:),
+              perform_key_equivalent as extern "C" fn(&mut Object, Sel, id) -> BOOL,
+            );
+
+            decl.add_ivar::<id>("intercepted_keys");
+
+            extern "C" fn perform_key_equivalent(this: &mut Object, _sel: Sel, event: id) -> BOOL {
+              unsafe {
+                let key_code: i32 = msg_send![event, keyCode];
+                if key_code == 53 {
+                  YES
+                } else {
+                  msg_send![super(this, class!(NSView)), performKeyEquivalent:event]
+                }
+              }
+            }
+
+            decl.register()
+          }
+          None => class!(NSView),
+        };
+
+      let w = Self {
         webview,
         #[cfg(target_os = "macos")]
         ns_window,
@@ -793,7 +834,7 @@ impl InnerWebView {
         file_drop_ptr,
         download_delegate,
         protocol_ptrs,
-        parent_view: msg_send![class!(NSView), alloc]
+        parent_view: msg_send![parent_view_cls, alloc],
       };
 
       // Initialize scripts
@@ -839,7 +880,7 @@ r#"Object.defineProperty(window, 'ipc', {
           w.parent_view.setWantsLayer(YES);
           w.parent_view.layer().setBackgroundColor_(cg_color);
         }
-        
+
         let frame = NSView::frame(window.ns_view as id);
         w.parent_view.setAutoresizingMask_(2 | 16);
         w.parent_view.setFrameSize(frame.size);
@@ -1126,17 +1167,6 @@ impl NSString {
 
       ns_string
     })
-  }
-
-  fn new_retain(s: &str) -> Self {
-    NSString(unsafe {
-      let ns_string: id = msg_send![class!(NSString), alloc];
-      msg_send![ns_string, initWithBytes:s.as_ptr() length:s.len() encoding:UTF8_ENCODING]
-    })
-  }
-
-  fn release(&self) {
-    unsafe { let _: () = msg_send![self.0, release]; }
   }
 
   fn to_str(&self) -> &str {
