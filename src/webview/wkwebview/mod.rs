@@ -65,7 +65,7 @@ impl Window {
 }
 
 #[cfg(target_os = "macos")]
-use file_drop::{add_file_drop_methods, set_file_drop_handler};
+use file_drop::add_file_drop_methods;
 
 #[cfg(target_os = "ios")]
 use crate::application::platform::ios::WindowExtIOS;
@@ -105,8 +105,6 @@ pub(crate) struct InnerWebView {
   ipc_handler_ptr: *mut (Box<dyn Fn(&Window, String)>, Rc<Window>),
   document_title_changed_handler: *mut (Box<dyn Fn(&Window, String)>, Rc<Window>),
   navigation_decide_policy_ptr: *mut Box<dyn Fn(String, bool) -> bool>,
-  #[cfg(target_os = "macos")]
-  file_drop_ptr: *mut (Box<dyn Fn(&Window, FileDropEvent) -> bool>, Rc<Window>),
   download_delegate: id,
   protocol_ptrs: Vec<*mut Box<dyn Fn(&Request<Vec<u8>>) -> Result<Response<Cow<'static, [u8]>>>>>,
   parent_view: id,
@@ -767,17 +765,6 @@ impl InnerWebView {
       let ui_delegate: id = msg_send![ui_delegate, new];
       let _: () = msg_send![webview, setUIDelegate: ui_delegate];
 
-      // File drop handling
-      #[cfg(target_os = "macos")]
-      let file_drop_ptr = match attributes.file_drop_handler {
-        // if we have a file_drop_handler defined, use the defined handler
-        Some(file_drop_handler) => {
-          set_file_drop_handler(webview, window.clone(), file_drop_handler)
-        }
-        // prevent panic by using a blank handler
-        None => set_file_drop_handler(webview, window.clone(), Box::new(|_, _| false)),
-      };
-
       // ns window is required for the print operation
       #[cfg(target_os = "macos")]
       let ns_window = {
@@ -808,6 +795,7 @@ impl InnerWebView {
             extern "C" fn perform_key_equivalent(this: &mut Object, _sel: Sel, event: id) -> BOOL {
               unsafe {
                 let key_code: i32 = msg_send![event, keyCode];
+                // escape key
                 if key_code == 53 {
                   YES
                 } else {
@@ -830,8 +818,6 @@ impl InnerWebView {
         ipc_handler_ptr,
         document_title_changed_handler,
         navigation_decide_policy_ptr,
-        #[cfg(target_os = "macos")]
-        file_drop_ptr,
         download_delegate,
         protocol_ptrs,
         parent_view: msg_send![parent_view_cls, alloc],
@@ -1121,11 +1107,6 @@ impl Drop for InnerWebView {
 
       if !self.navigation_decide_policy_ptr.is_null() {
         drop(Box::from_raw(self.navigation_decide_policy_ptr));
-      }
-
-      #[cfg(target_os = "macos")]
-      if !self.file_drop_ptr.is_null() {
-        drop(Box::from_raw(self.file_drop_ptr));
       }
 
       if !self.download_delegate.is_null() {
