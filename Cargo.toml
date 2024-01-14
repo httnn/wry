@@ -43,7 +43,7 @@ thiserror = "1.0"
 url = "2.3"
 tao = { version = "0.19", default-features = false, features = [ "serde" ] }
 http = "0.2.9"
-raw-window-handle = "0.4.3"
+raw-window-handle = "0.5"
 
 [dev-dependencies]
 http-range = "0.1.5"
